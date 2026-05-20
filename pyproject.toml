@@ -12,6 +12,7 @@ dependencies = [
 
     # DB
     "sqlalchemy>=2.0.0",
+    "greenlet>=3.0.0",              # SQLAlchemy async 필수
     "asyncpg>=0.29.0",              # PostgreSQL 비동기 드라이버
     "pgvector>=0.2.5",              # pgvector SQLAlchemy 타입
 

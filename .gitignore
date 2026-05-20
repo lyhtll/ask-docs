@@ -1,0 +1,29 @@
+# 환경변수 (절대 올리면 안 됨)
+.env
+
+# 업로드 문서
+documents/*
+!documents/.gitkeep
+
+# BM25 인덱스
+storage/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+dist/
+build/
+
+# HuggingFace 모델 캐시
+.cache/
+
+# IDE
+.idea/
+.vscode/
+
+# 테스트 커버리지
+.coverage
+htmlcov/

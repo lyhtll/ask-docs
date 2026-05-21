@@ -2,10 +2,20 @@ import pickle
 from pathlib import Path
 from typing import List
 
+from kiwipiepy import Kiwi
 from rank_bm25 import BM25Okapi
 
-from src.askdocs.core.config import settings
+from askdocs.core.config import settings
 
+_kiwi = Kiwi()
+
+
+def _tokenize(text: str) -> List[str]:
+    return [
+        token.form
+        for token in _kiwi.tokenize(text)
+        if token.tag.startswith(("NN", "VV", "VA"))
+    ]
 
 class BM25Store:
 
@@ -16,7 +26,7 @@ class BM25Store:
 
     def build(self, chunks: List[str]) -> None:
         self._chunks = chunks
-        tokenized = [chunk.split() for chunk in chunks] #띄어쓰기 기준으로 토크나이징
+        tokenized = [_tokenize(chunk) for chunk in chunks]
         self._bm25 = BM25Okapi(tokenized)
         self._save()
 
@@ -30,7 +40,7 @@ class BM25Store:
         if self._bm25 is None:
             self._load()
 
-        tokenized_query = query.split()
+        tokenized_query = _tokenize(query)
         scores = self._bm25.get_scores(tokenized_query)
 
         # 점수 높은 순으로 인덱스 정렬

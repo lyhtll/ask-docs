@@ -1,4 +1,5 @@
 import shutil
+from pathlib import Path
 from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
@@ -30,11 +31,13 @@ async def upload_document(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
-    save_path = f"documents/{file.filename}"
+    upload_dir = Path("documents")
+    upload_dir.mkdir(exist_ok=True)
+    save_path = upload_dir / file.filename
     with open(save_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
-    background_tasks.add_task(ingestion.ingest, save_path, db)
+    background_tasks.add_task(ingestion.ingest, str(save_path), db)
     return {"message": f"{file.filename} 업로드 완료. 인덱싱 중..."}
 
 

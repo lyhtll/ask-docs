@@ -20,6 +20,7 @@ class GraphState(TypedDict):
 
     # Generation
     answer: Optional[str]               # 최종 답변
+    sources: Optional[List[dict]]       # 참조 문서 정보
 
     # 메타
     is_complex: Optional[bool]          # 복잡한 질문 여부 (분기용)

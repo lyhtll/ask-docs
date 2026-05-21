@@ -28,8 +28,15 @@ class ChatRequest(BaseModel):
     )
 
 
+class SourceItem(BaseModel):
+    index: int = Field(..., examples=[1])
+    filename: str = Field(..., examples=["report.pdf"])
+    content: str = Field(..., examples=["연차는 최소 3일 전까지 신청해야 합니다."])
+
+
 class ChatResponse(BaseModel):
     answer: str = Field(..., examples=["연차는 최소 3일 전까지 신청해야 합니다."])
+    sources: list[SourceItem] = Field(default_factory=list)
 
 
 # ── Health ────────────────────────────────────────────────────────────────────

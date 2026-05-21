@@ -32,9 +32,10 @@ async def chat(
         "chunks": None,
         "reranked_chunks": None,
         "answer": None,
+        "sources": None,
         "is_complex": None,
     })
-    return {"answer": result["answer"]}
+    return {"answer": result["answer"], "sources": result.get("sources", [])}
 
 
 @router.post(

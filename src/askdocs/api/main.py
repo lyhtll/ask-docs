@@ -5,13 +5,20 @@ from fastapi import FastAPI
 from src.askdocs.api.routers import documents, chat
 from src.askdocs.api.schemas import HealthResponse
 from src.askdocs.core.database import engine, Base
+from src.askdocs.retrieval.es_store import ESStore
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    es_store = ESStore()
+    await es_store.ensure_index()
+
     yield
+
+    await es_store.close()
     await engine.dispose()
 
 
@@ -23,7 +30,7 @@ app = FastAPI(
         "### 파이프라인\n"
         "```\n"
         "문서 업로드 → Parent-Child 청킹 → BGE-M3 임베딩 → pgvector 저장\n"
-        "질문 → Router → (HyDE) → Hybrid Search (BM25+KNN, RRF)\n"
+        "질문 → Router → (HyDE) → Hybrid Search (ES BM25+KNN, RRF)\n"
         "     → CrossEncoder Reranking → LLM (Ollama) → 답변\n"
         "```\n\n"
         "### 지원 파일 형식\n"

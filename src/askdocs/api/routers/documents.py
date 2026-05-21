@@ -64,6 +64,6 @@ async def delete_document(
     doc = await db.get(Document, doc_id)
     if not doc:
         raise HTTPException(status_code=404, detail="문서를 찾을 수 없습니다.")
-    await db.delete(doc)
-    await db.commit()
-    return {"message": f"{doc.filename} 삭제 완료"}
+    filename = doc.filename
+    await ingestion.delete(doc_id, db)
+    return {"message": f"{filename} 삭제 완료"}

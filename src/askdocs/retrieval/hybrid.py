@@ -1,10 +1,11 @@
 from typing import List
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.askdocs.core.config import settings
 from src.askdocs.models.chunk import Chunk
-from src.askdocs.retrieval.bm25_store import BM25Store
+from src.askdocs.retrieval.es_store import ESStore
 from src.askdocs.retrieval.vector_store import VectorStore
 
 
@@ -12,7 +13,7 @@ class HybridSearch:
 
     def __init__(self):
         self._vector_store = VectorStore()
-        self._bm25_store   = BM25Store()
+        self._es_store     = ESStore()
 
     async def search(
         self,
@@ -23,42 +24,37 @@ class HybridSearch:
     ) -> List[Chunk]:
         top_k = top_k or settings.top_k
 
-        # 1. 각각 검색
         vector_results = await self._vector_store.search(query_vector, db, top_k)
-        bm25_results   = self._bm25_store.search(query, top_k)
+        es_chunk_ids   = await self._es_store.search(query, top_k)
 
-        # 2. RRF로 결합
-        return self._rrf(vector_results, bm25_results, top_k)
+        return await self._rrf(vector_results, es_chunk_ids, db, top_k)
 
-    def _rrf(
+    async def _rrf(
         self,
         vector_results: List[Chunk],
-        bm25_results: List[str],
+        es_chunk_ids: List[str],
+        db: AsyncSession,
         top_k: int,
-        k: int = 60,        # RRF 상수
+        k: int = 60,
     ) -> List[Chunk]:
+        scores: dict[str, float] = {}
 
-        scores = {}
-
-        # vector 결과 점수 계산
         for rank, chunk in enumerate(vector_results):
-            chunk_id = str(chunk.id)
-            scores[chunk_id] = scores.get(chunk_id, 0) + 1 / (k + rank + 1)
+            cid = str(chunk.id)
+            scores[cid] = scores.get(cid, 0) + 1 / (k + rank + 1)
 
-        # bm25 결과 점수 계산
-        bm25_contents = {chunk.content: chunk for chunk in vector_results}
-        for rank, content in enumerate(bm25_results):
-            if content in bm25_contents:
-                chunk_id = str(bm25_contents[content].id)
-                scores[chunk_id] = scores.get(chunk_id, 0) + 1 / (k + rank + 1)
+        for rank, cid in enumerate(es_chunk_ids):
+            scores[cid] = scores.get(cid, 0) + 1 / (k + rank + 1)
 
-        # 점수 높은 순으로 정렬
-        sorted_ids = sorted(scores, key=lambda x: scores[x], reverse=True)
-
-        # Chunk 객체로 변환해서 반환
+        sorted_ids  = sorted(scores, key=lambda x: scores[x], reverse=True)[:top_k]
         id_to_chunk = {str(chunk.id): chunk for chunk in vector_results}
-        return [
-            id_to_chunk[chunk_id]
-            for chunk_id in sorted_ids[:top_k]
-            if chunk_id in id_to_chunk
-        ]
+
+        missing_ids = [cid for cid in sorted_ids if cid not in id_to_chunk]
+        if missing_ids:
+            result = await db.execute(
+                select(Chunk).where(Chunk.id.in_(missing_ids))
+            )
+            for chunk in result.scalars().all():
+                id_to_chunk[str(chunk.id)] = chunk
+
+        return [id_to_chunk[cid] for cid in sorted_ids if cid in id_to_chunk]

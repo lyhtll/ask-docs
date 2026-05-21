@@ -13,12 +13,12 @@ def build_graph(db):
     graph = StateGraph(GraphState)
 
     # ── 노드 등록 ──
-    graph.add_node("분기",        router_node)
+    graph.add_node("분기", router_node)
     graph.add_node("hyde", hyde_node)
     graph.add_node("embed_query", embed_query_node)
-    graph.add_node("retrieve",    lambda s: retrieve_node(s, db))
-    graph.add_node("rerank",      rerank_node)
-    graph.add_node("generate",    generate_node)
+    graph.add_node("retrieve", lambda s: retrieve_node(s, db))
+    graph.add_node("rerank", rerank_node)
+    graph.add_node("generate", generate_node)
 
     # ── 진입점 ──
     graph.set_entry_point("분기")

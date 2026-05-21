@@ -16,6 +16,22 @@ services:
       timeout: 5s
       retries: 5
 
+  elasticsearch:
+    build: ./elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -v red"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
   ollama:
     image: ollama/ollama
     ports:
@@ -31,9 +47,12 @@ services:
       - .env
     environment:
       DB_HOST: postgres
+      ES_URL: http://elasticsearch:9200
       OLLAMA_BASE_URL: http://ollama:11434
     depends_on:
       postgres:
+        condition: service_healthy
+      elasticsearch:
         condition: service_healthy
       ollama:
         condition: service_started
@@ -42,5 +61,6 @@ services:
 
 volumes:
   pgdata:
+  esdata:
   ollama_data:
   hf_cache:

@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     bm25_weight: float = Field(default=0.4)
     knn_weight: float = Field(default=0.6)
 
+    # Elasticsearch
+    es_url: str = Field(default="http://localhost:9200")
+    es_index: str = Field(default="chunks")
+
     # Ollama
     ollama_base_url: str = Field(default="http://localhost:11434")
     ollama_model: str = Field(default="gemma3")

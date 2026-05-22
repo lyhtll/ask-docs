@@ -59,6 +59,7 @@ class ESStore:
         await self._es.delete_by_query(
             index=self._index,
             query={"term": {"doc_id": doc_id}},
+            refresh=True,
         )
 
     async def close(self) -> None:
